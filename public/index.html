@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Search</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional styles specific to the page */
+        .poster img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .action-button {
+            cursor: pointer;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Movie Search</h1>
+        <form id="searchForm" class="mb-4">
+            <div class="input-group">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search for a movie or TV show">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+        <div id="searchResults" class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Poster</th>
+                        <th scope="col">Title</th>
+                        <th scope="col">Year</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="searchResultsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async function (event) {
+            event.preventDefault(); // Prevent form submission
+
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            if (!searchTerm) {
+                alert('Please enter a search term');
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://www.omdbapi.com/?apikey=33fffe6e&s=${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+                if (data.Response === 'True') {
+                    displaySearchResults(data.Search);
+                } else {
+                    alert(data.Error || 'No results found');
+                }
+            } catch (error) {
+                console.error('Error fetching search results:', error);
+                alert('An error occurred while fetching search results');
+            }
+        });
+
+        function displaySearchResults(results) {
+            const searchResultsBody = document.getElementById('searchResultsBody');
+            searchResultsBody.innerHTML = ''; // Clear previous search results
+
+            for (const result of results) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><div class="poster"><img src="${result.Poster}" alt="${result.Title}"></div></td>
+                    <td>${result.Title}</td>
+                    <td>${result.Year}</td>
+                    <td>${result.Type}</td>
+                    <td><button class="action-button" data-title="${result.Title}" data-year="${result.Year}" data-type="${result.Type}" data-poster="${result.Poster}">Add to Favorites</button></td>
+                `;
+                searchResultsBody.appendChild(row);
+            }
+
+            // Attach click event listeners to Add to Favorites buttons
+            document.querySelectorAll('.action-button').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const title = button.getAttribute('data-title');
+                    const year = button.getAttribute('data-year');
+                    const type = button.getAttribute('data-type');
+                    const poster = button.getAttribute('data-poster');
+                    await addToFavorites(title, year, type, poster);
+                    // Do not change the button text
+                });
+            });
+        }
+
+        async function addToFavorites(title, year, type, poster) {
+            try {
+                const response = await fetch('/favorites', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, year, type, poster })
+                });
+                const data = await response.json();
+                alert(data.message);
+            } catch (error) {
+                console.error('Error adding to favorites:', error);
+                alert('An error occurred while adding to favorites');
+            }
+        }
+    </script>
+</body>
+
+</html>
